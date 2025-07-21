@@ -1,95 +1,100 @@
 const express = require("express");
 const app = express();
 
-const port = 8080;
+const port = process.env.PORT || 8080; // ✅ Use dynamic port for Render
 const methodOverride = require("method-override");
 app.use(methodOverride("_method"));
 const path = require("path");
-app.use(express.urlencoded({extended : true})); 
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
 
-// creating uuid for uniqeu id 
 const { v4: uuidv4 } = require('uuid');
 
-
-//creating post array to access the post as we are not using db right now
-let posts =[
- 
-    {   
-        id :uuidv4(),
-        username : "MonuKumarShaw",
-    content: "I am a Web Developer i create Websites!"
+// Sample posts array (in-memory)
+let posts = [
+    {
+        id: uuidv4(),
+        username: "MonuKumarShaw",
+        content: "I am a Web Developer and I create Websites!"
     },
     {
         id: uuidv4(),
         username: "GautamKumarShaw",
-        content: "I am a Data Analyst i manage data!"
+        content: "I am a Data Analyst and I manage data!"
     },
-   {
-      id: uuidv4(),
-    username : "SonuSharma",
-    content : "Hi i am a Software developer!"
-   }
-
-
+    {
+        id: uuidv4(),
+        username: "SonuSharma",
+        content: "Hi, I am a Software Developer!"
+    }
 ];
-// to get all posts
-app.get("/post",(req, res)=>{
-    res.render("index.ejs", {posts});
+
+// Root route to check if live
+app.get("/", (req, res) => {
+    res.send("Quora REST API Backend is Live 🚀");
 });
-// to add a new post
-app.get("/post/new", (req,res)=>{
+
+// Display all posts
+app.get("/post", (req, res) => {
+    res.render("index.ejs", { posts });
+});
+
+// Form to add new post
+app.get("/post/new", (req, res) => {
     res.render("new.ejs");
 });
 
-// to add the post in the array
-app.post("/post", (req, res)=>{
-    let{username, content} = req.body;
+// Handle creation of new post
+app.post("/post", (req, res) => {
+    let { username, content } = req.body;
     let id = uuidv4();
-    posts.push({id, username, content});
-    res.redirect("/post");//  bydefault is will be on get request.
-      
+    posts.push({ id, username, content });
+    res.redirect("/post");
 });
-// see in detail
-app.get("/post/:id",(req, res)=>{
-    let {id} = req.params;
+
+// View single post
+app.get("/post/:id", (req, res) => {
+    let { id } = req.params;
     const post = posts.find((p) => id === p.id);
-    res.render("show.ejs",{post});
+    if (!post) {
+        return res.status(404).send("Post not found.");
+    }
+    res.render("show.ejs", { post });
 });
 
+// Form to edit post
+app.get("/post/:id/edit", (req, res) => { // ✅ lowercase "edit"
+    const { id } = req.params;
+    const post = posts.find((p) => p.id === id);
+    if (!post) {
+        return res.status(404).send("Post not found.");
+    }
+    res.render("edit.ejs", { post });
+});
 
-// to patch request means to edit the content
-
-
+// Update post
 app.patch("/post/:id", (req, res) => {
     const { id } = req.params;
-    const  content  = req.body.content; // fixed
-    console.log(content);
-    const post = posts.find((p) => p.id == id);
-    post.content = content;
+    const { content } = req.body;
+    const post = posts.find((p) => p.id === id);
+    if (post) {
+        post.content = content;
+    }
     res.redirect("/post");
-    
-    
-});
-// to edit 
-app.get("/post/:id/Edit", (req,res)=>{
-    const {id} = req.params;
-    const post = posts.find((p) => p.id == id);
-    res.render("Edit.ejs",{post});
 });
 
-//to delete post
-app.delete("/post/:id", (req,res)=>{
-    const {id} = req.params;
-    posts = posts.filter((p)=> p.id != id);
+// Delete post
+app.delete("/post/:id", (req, res) => {
+    const { id } = req.params;
+    posts = posts.filter((p) => p.id !== id);
     res.redirect("/post");
-})
+});
 
-
-app.listen(port, ()=>{
-    console.log("App is Listening on port 8080");
+// Start server
+app.listen(port, () => {
+    console.log(`App is Listening on port ${port}`);
 });
